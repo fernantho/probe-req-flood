@@ -14,12 +14,12 @@ static flooder_param *global_params = NULL;
 static void usage(){
   printf("%s\n%s\n"
 	 "usage:\n"
-	 " flooder -i<ifname> -c<channel> [-n<times>]\n"
+	 " flooder -i<ifname> -c<channel> [-t<times>]\n"
 	 "  -i = interface name\n"
 	 "  -c = channel number\n"
-	 "  -n = flood times, no parameter means forever\n"
+	 "  -t = flood times, no parameter means forever\n"
 	 "example:\n"
-	 "  flooder -i wlan0 -c 11 -n 100000000\n", 
+	 "  flooder -i wlan0 -c 11 -t 100000000\n", 
 	 flooder_version,
 	 flooder_license
 	 );
@@ -40,17 +40,17 @@ static void global_deinit(){
 }
 
 static int set_interface(char* opt){
-  // TODO
+  global_params->iface = opt;
   return 0;
 }
 
 static int set_channel(char* opt){
-  // TODO
+  global_params->channel = atoi(opt);
   return 0;
 }
 
 static int set_times(char* opt){
-  // TODO
+  global_params->times = atoi(opt);
   return 0;
 }
 
@@ -63,12 +63,12 @@ int main(int argc, char *argv[]){
   if (!global_init())
     goto error;
 
-  if (argc != 4){
+  if (argc != 7){
     usage();
     goto error;
   }
 
-  while((c = getopt (argc, argv, "i:c:")) != -1){
+  while((c = getopt (argc, argv, "i:c:t:")) != -1){
     switch (c){
     case 'i':
       if(set_interface(optarg) == -1)
@@ -78,8 +78,8 @@ int main(int argc, char *argv[]){
       if (set_channel(optarg) == -1)
 	goto error;
       break;
-    case 'n':
-      if (set_times(optarg -1))
+    case 't':
+      if (set_times(optarg) == -1)
 	goto error;
       break;
     default:
@@ -96,6 +96,7 @@ int main(int argc, char *argv[]){
  error:
   exitcode = -1;
   global_deinit();
+  printf("internal error!\n");
   return exitcode;
     
 }
