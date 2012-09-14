@@ -13,4 +13,5 @@ flooder: $(OBJS)
 clean:
 	rm -f *.o
 	rm -f flooder
+	rm -f *~
 
