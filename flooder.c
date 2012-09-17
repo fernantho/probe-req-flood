@@ -83,15 +83,18 @@ static unsigned getFreq(int channel){
 }
 
 static struct nl_msg *gen_msg(flooder_param *params){
-  struct nl_msg *msg, *freqs;
+  struct nl_msg *msg, *ssids, *freqs;
   
   msg  = nlmsg_alloc();
+  ssids = nlmsg_alloc();
   freqs = nlmsg_alloc();
 
-  if (!msg || !freqs){
+  if (!msg || !ssids || !freqs){
     flooder_log(FLOODER_DEBUG, "Failed to allocate a netlink message");
     if(msg)
       nlmsg_free(msg);
+    if(ssids)
+      nlmsg_free(ssids);
     if(freqs)
       nlmsg_free(freqs);
     return NULL;
@@ -99,6 +102,9 @@ static struct nl_msg *gen_msg(flooder_param *params){
 
   genlmsg_put(msg, 0, 0, handle_id, 0, 0, NL80211_CMD_TRIGGER_SCAN, 0);
   NLA_PUT_U32(msg, NL80211_ATTR_IFINDEX, params->iface);
+
+  NLA_PUT(ssids, 1, 0, "= =");
+  nla_put_nested(msg, NL80211_ATTR_SCAN_SSIDS, ssids);
 
   NLA_PUT_U32(freqs, 1, getFreq(params->channel));
   nla_put_nested(msg, NL80211_ATTR_SCAN_FREQUENCIES, freqs);
@@ -139,7 +145,7 @@ static int send_and_recv(struct nl_handle* handle, struct nl_msg* msg, struct nl
   err = nl_send_auto_complete(handle, msg);
   if (err < 0)
     goto out;
-  
+
   err = 1;
 
   nl_cb_err(tmp_cb, NL_CB_CUSTOM, error_handler, &err);
@@ -159,7 +165,7 @@ static void send_one_probe_request(struct nl_handle* handle, struct nl_msg* msg,
   flooder_log(FLOODER_DEBUG, "Send One Probe Request");
   int ret = send_and_recv(handle, msg, cb);
   if (ret)
-    flooder_log(FLOODER_DEBUG, "Sending Failed because %d", ret);
+    flooder_log(FLOODER_DEBUG, "Sending Failed because %s", strerror(-ret));
   else
     flooder_log(FLOODER_DEBUG, "Sending Finished");
 }
