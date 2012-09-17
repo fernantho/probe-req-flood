@@ -10,9 +10,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <netlink/genl/genl.h>
 #include <net/if.h>
+#include <netlink/genl/genl.h>
+#include <netlink/genl/family.h>
+#include <netlink/genl/ctrl.h>
 
+#include "nl80211_copy.h"
 #include "flooder.h"
 
 int debug_level;
@@ -75,17 +78,37 @@ static struct nl_cb *gen_cb(){
   return ret;
 }
 
+static unsigned getFreq(int channel){
+  return 2407 + channel * 5;
+}
+
 static struct nl_msg *gen_msg(flooder_param *params){
-  struct nl_msg *msg, *ssids, *freqs, *rates;
+  struct nl_msg *msg, *freqs;
   
   msg  = nlmsg_alloc();
+  freqs = nlmsg_alloc();
 
-  if (!msg){
-    flooder_log(FLOODER_DEBUG, "Failed to allocate a message");
+  if (!msg || !freqs){
+    flooder_log(FLOODER_DEBUG, "Failed to allocate a netlink message");
+    if(msg)
+      nlmsg_free(msg);
+    if(freqs)
+      nlmsg_free(freqs);
     return NULL;
   }
 
+  genlmsg_put(msg, 0, 0, handle_id, 0, 0, NL80211_CMD_TRIGGER_SCAN, 0);
+  NLA_PUT_U32(msg, NL80211_ATTR_IFINDEX, params->iface);
+
+  NLA_PUT_U32(freqs, 1, getFreq(params->channel));
+  nla_put_nested(msg, NL80211_ATTR_SCAN_FREQUENCIES, freqs);
+
   return msg;
+
+ nla_put_failure:
+  nlmsg_free(msg);
+  nlmsg_free(freqs);
+  return NULL;
 }
 
 static send_and_recv(){
@@ -107,8 +130,6 @@ int probe_req_flood(flooder_param *params){
   struct nl_msg *msg = gen_msg(params);
   if (msg == NULL || cb == NULL || handle == NULL)
     return -1;
-  
-  
   
   int i = 0;
   while(params->times == -1 || i < params->times){
