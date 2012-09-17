@@ -119,16 +119,8 @@ static int send_and_recv(struct nl_handle* handle, struct nl_msg* msg, struct nl
     goto out;
   
   err = nl_send_auto_complete(handle, msg);
-  if (err < 0)
-    goto out;
-  
-  err = 1;
-  
-  while (err > 0)
-    nl_recvmsgs(handle, tmp_cb);
 
  out:
-  nl_cb_put(tmp_cb);
   return err;
 }
 
