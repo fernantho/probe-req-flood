@@ -53,9 +53,14 @@ static struct nl_handle *gen_handle(struct nl_cb* cb){
   if(genl_connect(handle)){
     flooder_log(FLOODER_DEBUG, "Cannot connect to handle");
     handle_destroy(handle);
-    handle = NULL;
     return NULL;
   }  
+
+  if (genl_ctrl_resolve(handle, "nl80211") < 0){
+    flooder_log(FLOODER_DEBUG, "Cannot resolve nl80211");
+    handle_destroy(handle);
+    return NULL;
+  }
 
   return handle;
 }
@@ -99,6 +104,7 @@ int probe_req_flood(flooder_param *params){
   struct nl_msg *msg = gen_msg(params);
   if (msg == NULL || cb == NULL || handle == NULL)
     return -1;
+  
   
   
   int i = 0;
