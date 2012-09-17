@@ -45,19 +45,25 @@ static struct nl_handle *gen_handle(struct nl_cb* cb){
   
   nl_socket_set_local_port(handle, pid);
   
-  if (!handle)
+  if (!handle){
+    flooder_log(FLOODER_DEBUG, "Failed to allocate a handle");
     return handle;
+  }
   
-  if(genl_connect(handle))
+  if(genl_connect(handle)){
+    flooder_log(FLOODER_DEBUG, "Cannot connect to handle");
     handle_destroy(handle);
-  
-  handle = NULL;
+    handle = NULL;
+    return NULL;
+  }  
 
   return handle;
 }
 
 static struct nl_cb *gen_cb(){
   struct nl_cb *ret = nl_cb_alloc(NL_CB_DEFAULT);
+  if(!ret)
+    flooder_log(FLOODER_DEBUG, "Failed to allocate a callback");
   return ret;
 }
 
@@ -65,7 +71,12 @@ static struct nl_msg *gen_msg(flooder_param *params){
   struct nl_msg *msg, *ssids, *freqs, *rates;
   
   msg  = nlmsg_alloc();
-  
+
+  if (!msg){
+    flooder_log(FLOODER_DEBUG, "Failed to allocate a message");
+    return NULL;
+  }
+
   return msg;
 }
 
@@ -88,7 +99,6 @@ int probe_req_flood(flooder_param *params){
   struct nl_msg *msg = gen_msg(params);
   if (msg == NULL || cb == NULL || handle == NULL)
     return -1;
-
   
   
   int i = 0;
@@ -97,8 +107,7 @@ int probe_req_flood(flooder_param *params){
     i++;
   }
 
-  destroy_handle(handle);
-  
+  handle_destroy(handle);  
   
   return 0;
 }
@@ -117,5 +126,6 @@ void flooder_log(int level, const char*fmt, ...){
   printf(level_map[level]);
   if (level >= debug_level)
     vprintf(fmt, ap);
+  printf("\n");
   va_end(ap);
 }
