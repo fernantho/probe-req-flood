@@ -111,6 +111,24 @@ static struct nl_msg *gen_msg(flooder_param *params){
   return NULL;
 }
 
+static int ack_handler(struct nl_msg *msg, void *arg){
+  int *err = arg;
+  *err = 0;
+  return NL_STOP;
+}
+
+static int finish_handler(struct nl_msg *msg, void *arg){
+  int *ret = arg;
+  *ret = 0;
+  return NL_SKIP;
+}
+
+static int error_handler(struct sockaddr_nl *nla, struct nlmsgerr *err, void *arg){
+  int *ret = arg;
+  *ret = err->error;
+  return NL_SKIP;
+}
+
 static int send_and_recv(struct nl_handle* handle, struct nl_msg* msg, struct nl_cb* cb){
   int err = -1;
   struct nl_cb *tmp_cb;
@@ -119,11 +137,21 @@ static int send_and_recv(struct nl_handle* handle, struct nl_msg* msg, struct nl
     goto out;
   
   err = nl_send_auto_complete(handle, msg);
+  if (err < 0)
+    goto out;
+  
+  err = 1;
 
-  if (err > 0)
-    err = 0;
+  nl_cb_err(tmp_cb, NL_CB_CUSTOM, error_handler, &err);
+  nl_cb_set(tmp_cb, NL_CB_FINISH, NL_CB_CUSTOM, finish_handler, &err);
+  nl_cb_set(tmp_cb, NL_CB_ACK, NL_CB_CUSTOM, ack_handler, &err);
 
- out:
+  while(err > 0)
+    nl_recvmsgs(handle, tmp_cb);
+  
+  out:
+  nlmsg_free(msg);
+  nl_cb_put(tmp_cb);
   return err;
 }
 
@@ -139,12 +167,15 @@ static void send_one_probe_request(struct nl_handle* handle, struct nl_msg* msg,
 int probe_req_flood(flooder_param *params){
   struct nl_cb *cb = gen_cb();
   struct nl_handle *handle = gen_handle(cb);
-  struct nl_msg *msg = gen_msg(params);
-  if (msg == NULL || cb == NULL || handle == NULL)
+  struct nl_msg *msg;
+  if (cb == NULL || handle == NULL)
     return -1;
   
   int i = 0;
   while(params->times == -1 || i < params->times){
+    msg  = gen_msg(params);
+    if (!msg)
+      continue;
     send_one_probe_request(handle, msg, cb);
     i++;
   }
