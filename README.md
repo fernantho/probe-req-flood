@@ -10,15 +10,6 @@ options:
 * -t flood times, optional, how many probe requests will to transmit  
 * -d debug flag, optional, display debug information
 
-usage:  
- flooder -i<ifname> -c<channel> [-t<times>] [-d]  
-  -i = interface name  
-  -c = channel number  
-  -t = flood times, no parameter means forever  
-  -d = display debug messages  
-example:  
-  flooder -i wlan0 -c 11 -t 100000000  
-
 License: [GPL2](http://www.gnu.org/licenses/gpl-2.0.html)
 
 Author: [Li Shijian](http://github.com/furtherLee)
