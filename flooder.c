@@ -120,6 +120,9 @@ static int send_and_recv(struct nl_handle* handle, struct nl_msg* msg, struct nl
   
   err = nl_send_auto_complete(handle, msg);
 
+  if (err > 0)
+    err = 0;
+
  out:
   return err;
 }
