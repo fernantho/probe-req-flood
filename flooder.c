@@ -189,8 +189,10 @@ int probe_req_flood(flooder_param *params){
   while(params->times == -1 || i < params->times){
     send_one_probe_request(handle, params, cb);
     i++;
+    if (i % 10 == 0)
+      flooder_log(FLOODER_INFO, "Flood the %d times", i);
   }
-
+  flooder_log(FLOODER_INFO, "Flood Finished!");
   handle_destroy(handle);  
   
   return 0;
