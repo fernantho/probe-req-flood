@@ -111,17 +111,34 @@ static struct nl_msg *gen_msg(flooder_param *params){
   return NULL;
 }
 
-static send_and_recv(){
-
-
+static int send_and_recv(struct nl_handle* handle, struct nl_msg* msg, struct nl_cb* cb){
+  int err = -1;
+  struct nl_cb *tmp_cb;
+  tmp_cb = nl_cb_clone(cb);
+  if (!cb)
+    goto out;
   
+  err = nl_send_auto_complete(handle, msg);
+  if (err < 0)
+    goto out;
+  
+  err = 1;
+  
+  while (err > 0)
+    nl_recvmsgs(handle, tmp_cb);
+
+ out:
+  nl_cb_put(tmp_cb);
+  return err;
 }
 
 static void send_one_probe_request(struct nl_handle* handle, struct nl_msg* msg, struct nl_cb* cb){
-  printf("send one\n");
-  
-  
-  
+  flooder_log(FLOODER_DEBUG, "Send One Probe Request");
+  int ret = send_and_recv(handle, msg, cb);
+  if (ret)
+    flooder_log(FLOODER_DEBUG, "Sending Failed");
+  else
+    flooder_log(FLOODER_DEBUG, "Sending Finished");
 }
 
 int probe_req_flood(flooder_param *params){
