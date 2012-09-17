@@ -1,13 +1,22 @@
-#include <ctype.h>
-#include <sys/types.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <netlink/genl/genl.h>
+/*
+ *
+ *
+ *
+ *
+ *
+ */
 
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <netlink/genl/genl.h>
 
 #include "flooder.h"
 
-static unit32_t port_bitmap[32] = {0};
+int debug_level;
+
+static uint32_t port_bitmap[32] = {0};
 
 static void handle_destroy(struct nl_handle *handle){
   uint32_t port = nl_socket_get_local_port(handle);
@@ -92,4 +101,21 @@ int probe_req_flood(flooder_param *params){
   
   
   return 0;
+}
+
+void flooder_log(int level, const char*fmt, ...){
+  static char* level_map[] = {
+    "[DUMP]    ",
+    "[DEBUG]   ",
+    "[INFO]    ",
+    "[WARN]    ",
+    "[ERROR]   "
+  };
+
+  va_list ap;
+  va_start(ap, fmt);
+  printf(level_map[level]);
+  if (level >= debug_level)
+    vprintf(fmt, ap);
+  va_end(ap);
 }
