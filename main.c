@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-
+#include <net/if.h>
 #include "flooder.h"
 
 
@@ -41,7 +41,10 @@ static void global_deinit(){
 }
 
 static int set_interface(char* opt){
-  global_params->iface = opt;
+  global_params->iface = if_nametoindex(opt);
+  flooder_log(FLOODER_DEBUG, "Select %s with ifindex %u", opt, global_params->iface);
+  if (global_params->iface == 0)
+    return -1;
   return 0;
 }
 

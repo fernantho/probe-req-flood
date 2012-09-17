@@ -11,12 +11,15 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <netlink/genl/genl.h>
+#include <net/if.h>
 
 #include "flooder.h"
 
 int debug_level;
 
 static uint32_t port_bitmap[32] = {0};
+static int handle_id;
+
 
 static void handle_destroy(struct nl_handle *handle){
   uint32_t port = nl_socket_get_local_port(handle);
@@ -56,7 +59,7 @@ static struct nl_handle *gen_handle(struct nl_cb* cb){
     return NULL;
   }  
 
-  if (genl_ctrl_resolve(handle, "nl80211") < 0){
+  if ((handle_id = genl_ctrl_resolve(handle, "nl80211")) < 0){
     flooder_log(FLOODER_DEBUG, "Cannot resolve nl80211");
     handle_destroy(handle);
     return NULL;

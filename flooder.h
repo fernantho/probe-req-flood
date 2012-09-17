@@ -10,7 +10,7 @@
 #endif
 
 typedef struct{
-  char* iface;
+  unsigned iface;
   int channel;
   int times;
 }flooder_param;
