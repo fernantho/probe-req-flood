@@ -128,7 +128,7 @@ static void send_one_probe_request(struct nl_handle* handle, struct nl_msg* msg,
   flooder_log(FLOODER_DEBUG, "Send One Probe Request");
   int ret = send_and_recv(handle, msg, cb);
   if (ret)
-    flooder_log(FLOODER_DEBUG, "Sending Failed");
+    flooder_log(FLOODER_DEBUG, "Sending Failed because %d", ret);
   else
     flooder_log(FLOODER_DEBUG, "Sending Finished");
 }
