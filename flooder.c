@@ -161,9 +161,18 @@ static int send_and_recv(struct nl_handle* handle, struct nl_msg* msg, struct nl
   return err;
 }
 
-static void send_one_probe_request(struct nl_handle* handle, struct nl_msg* msg, struct nl_cb* cb){
+static void send_one_probe_request(struct nl_handle* handle, flooder_param *params, struct nl_cb* cb){
   flooder_log(FLOODER_DEBUG, "Send One Probe Request");
-  int ret = send_and_recv(handle, msg, cb);
+  int ret;
+  struct nl_msg* msg;
+
+  #define DEVICE_BUSY -16
+  do{
+    msg = gen_msg(params);
+    ret = send_and_recv(handle, msg, cb);
+    usleep(10000);
+  }while(ret == DEVICE_BUSY);
+
   if (ret)
     flooder_log(FLOODER_DEBUG, "Sending Failed because %s", strerror(-ret));
   else
@@ -173,16 +182,12 @@ static void send_one_probe_request(struct nl_handle* handle, struct nl_msg* msg,
 int probe_req_flood(flooder_param *params){
   struct nl_cb *cb = gen_cb();
   struct nl_handle *handle = gen_handle(cb);
-  struct nl_msg *msg;
   if (cb == NULL || handle == NULL)
     return -1;
   
   int i = 0;
   while(params->times == -1 || i < params->times){
-    msg  = gen_msg(params);
-    if (!msg)
-      continue;
-    send_one_probe_request(handle, msg, cb);
+    send_one_probe_request(handle, params, cb);
     i++;
   }
 
