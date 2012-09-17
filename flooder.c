@@ -132,9 +132,10 @@ void flooder_log(int level, const char*fmt, ...){
 
   va_list ap;
   va_start(ap, fmt);
-  printf(level_map[level]);
-  if (level >= debug_level)
+  if (level >= debug_level){
+    printf(level_map[level]);
     vprintf(fmt, ap);
-  printf("\n");
+    printf("\n");
+  }
   va_end(ap);
 }
