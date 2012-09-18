@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <time.h>
 #include <net/if.h>
 #include <netlink/genl/genl.h>
 #include <netlink/genl/family.h>
@@ -17,6 +18,10 @@
 
 #include "nl80211_copy.h"
 #include "flooder.h"
+
+#define ETH_ALEN 6
+
+typedef unsigned char u8;
 
 int debug_level;
 
@@ -82,10 +87,54 @@ static unsigned getFreq(int channel){
   return 2407 + channel * 5;
 }
 
-static struct nl_msg *gen_msg(flooder_param *params){
-  struct nl_msg *msg, *ssids, *freqs;
+static void shuffle_src(u8 *src){
+  int i;
+  for (i = 0; i < ETH_ALEN; ++i)
+    src[i] = rand() % 256;
   
-  msg  = nlmsg_alloc();
+}
+
+static u8* gen_buf(size_t *size){
+
+  static const u8 template[] = {
+    0x40, 0x00, 0x00, 0x00, 0xff, 0xff, 
+    0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
+    0xa0, 0xa4, 0x00, 0x00, 0x01, 0x08, 0x02, 0x04,
+    0x0b, 0x16, 0x0c, 0x12, 0x18, 0x24, 0x32, 0x04,
+    0x30, 0x48, 0x60, 0x6c, 0x03, 0x01, 0x0b, 0x2d,
+    0x1a, 0xce, 0x11, 0x1b, 0xff, 0xff, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00};
+
+  static const int src_offset = 10;
+
+  u8* ret = (u8 *)malloc(sizeof(template));
+  
+  if (ret == NULL)
+    return NULL;
+  
+  *size = sizeof(template);
+
+  memcpy(ret, template, *size);
+  shuffle_src(ret+src_offset);
+
+  return ret;
+}
+
+static struct nl_msg *gen_msg(flooder_param *params){
+  //  struct nl_msg *msg, *ssids, *freqs;
+  
+  struct nl_msg *msg  = nlmsg_alloc();
+  if (!msg){
+    flooder_log(FLOODER_DEBUG, "Failed to allocate a netlink message");
+    return NULL;
+  }
+  
+  
+  
+  /*
   ssids = nlmsg_alloc();
   freqs = nlmsg_alloc();
 
@@ -108,12 +157,23 @@ static struct nl_msg *gen_msg(flooder_param *params){
 
   NLA_PUT_U32(freqs, 1, getFreq(params->channel));
   nla_put_nested(msg, NL80211_ATTR_SCAN_FREQUENCIES, freqs);
+  */
 
+  size_t buf_len;
+  u8* buf = gen_buf(&buf_len);
+  if (buf == NULL)
+    goto nla_put_failure;
+  
+  genlmsg_put(msg, 0, 0, handle_id, 0, 0, NL80211_CMD_FRAME, 0);
+  NLA_PUT_U32(msg, NL80211_ATTR_IFINDEX, params->iface);
+  NLA_PUT_U32(msg, NL80211_ATTR_WIPHY_FREQ, getFreq(params->channel));
+  NLA_PUT_FLAG(msg, NL80211_ATTR_DONT_WAIT_FOR_ACK);
+  NLA_PUT(msg, NL80211_ATTR_FRAME, buf_len, buf);
+  free(buf);
   return msg;
 
  nla_put_failure:
   nlmsg_free(msg);
-  nlmsg_free(freqs);
   return NULL;
 }
 
@@ -180,6 +240,7 @@ static void send_one_probe_request(struct nl_handle* handle, flooder_param *para
 }
 
 int probe_req_flood(flooder_param *params){
+  srand(time(NULL));
   struct nl_cb *cb = gen_cb();
   struct nl_handle *handle = gen_handle(cb);
   if (cb == NULL || handle == NULL)
