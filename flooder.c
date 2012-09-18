@@ -1,9 +1,12 @@
-/*
+/**
+ * Probe Request Flooder
+ * A tool to generate a flood of probe requests on a given channel.
+ * It will block all APs on the channel with heavy IO.
  *
+ * LICENSE: DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
  *
- *
- *
- *
+ * Author: Li Shijian
+ * Date: 18 Sep 2012
  */
 
 #include <stdio.h>
