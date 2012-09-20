@@ -22,10 +22,6 @@
 #include "nl80211_copy.h"
 #include "flooder.h"
 
-#define ETH_ALEN 6
-
-typedef unsigned char u8;
-
 int debug_level;
 
 static uint32_t port_bitmap[32] = {0};

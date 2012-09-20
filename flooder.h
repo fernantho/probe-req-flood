@@ -9,10 +9,15 @@
 #define STRUCT_PACKED
 #endif
 
+#define ETH_ALEN 6
+
+typedef unsigned char u8;
+
 typedef struct{
   unsigned iface;
   int channel;
   int times;
+  u8 addr[ETH_ALEN];
 }flooder_param;
 
 enum{
