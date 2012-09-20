@@ -14,9 +14,10 @@ static flooder_param *global_params = NULL;
 static void usage(){
   printf("%s\n%s\n"
 	 "usage:\n"
-	 " flooder -i<ifname> -c<channel> [-t<times>] [-d]\n"
+	 " flooder -i<ifname> -c<channel> [-b<dst_mac>] [-t<times>] [-d]\n"
 	 "  -i = interface name\n"
 	 "  -c = channel number\n"
+	 "  -b = target MAC address\n"
 	 "  -t = flood times, no parameter means forever\n"
 	 "  -d = display debug messages\n"
 	 "example:\n"
@@ -29,9 +30,17 @@ static void usage(){
 
 static int global_init(){
   global_params = (flooder_param *)malloc(sizeof(flooder_param));
+
   if (global_params == NULL)
     return 0;
+
   global_params->times = -1;
+
+  int i;
+
+  for(i = 0; i < ETH_ALEN; ++i)
+    global_params->addr[i] = 0xff;
+
   return 1;
 }
 
@@ -66,6 +75,43 @@ static int set_debug_level(int level){
   return 0;
 }
 
+static int hex2num(char c)
+{
+	if (c >= '0' && c <= '9')
+		return c - '0';
+	if (c >= 'a' && c <= 'f')
+		return c - 'a' + 10;
+	if (c >= 'A' && c <= 'F')
+		return c - 'A' + 10;
+	return -1;
+}
+
+static int hwaddr_aton(const char *txt, u8 *addr)
+{
+	int i;
+
+	for (i = 0; i < 6; i++) {
+		int a, b;
+
+		a = hex2num(*txt++);
+		if (a < 0)
+			return -1;
+		b = hex2num(*txt++);
+		if (b < 0)
+			return -1;
+		*addr++ = (a << 4) | b;
+		if (i < 5 && *txt++ != ':')
+			return -1;
+	}
+
+	return 0;
+}
+
+static int set_dst_addr(char* opt){
+  hwaddr_aton(opt, global_params->addr);
+  return 0;
+}
+
 int main(int argc, char *argv[]){
 #define FLAGS_REQUIRED 2
   int c;
@@ -77,7 +123,7 @@ int main(int argc, char *argv[]){
 
   set_debug_level(FLOODER_INFO);
 
-  while((c = getopt (argc, argv, "i:c:t:d")) != -1){
+  while((c = getopt (argc, argv, "b:i:c:t:d")) != -1){
     switch (c){
     case 'i':
       if(set_interface(optarg) == -1)
@@ -95,6 +141,10 @@ int main(int argc, char *argv[]){
       break;
     case 'd':
       if (set_debug_level(FLOODER_DEBUG) == -1)
+	goto error;
+      break;
+    case 'b':
+      if (set_dst_addr(optarg) == -1)
 	goto error;
       break;
     case '?':
