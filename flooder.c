@@ -93,7 +93,7 @@ static void shuffle_src(u8 *src){
   
 }
 
-static u8* gen_buf(size_t *size){
+static u8* gen_buf(size_t *size, u8* dst){
 
   static const u8 template[] = {
     0x40, 0x00, 0x00, 0x00, 0xff, 0xff, 
@@ -108,6 +108,9 @@ static u8* gen_buf(size_t *size){
     0x00, 0x00, 0x00};
 
   static const int src_offset = 10;
+  static const int dst_offset = 4;
+  static const int bss_offset = 16;
+
 
   u8* ret = (u8 *)malloc(sizeof(template));
   
@@ -118,6 +121,8 @@ static u8* gen_buf(size_t *size){
 
   memcpy(ret, template, *size);
   shuffle_src(ret+src_offset);
+  memcpy(ret+dst_offset, dst, ETH_ALEN);
+  memcpy(ret+bss_offset, dst, ETH_ALEN);
 
   return ret;
 }
@@ -131,35 +136,8 @@ static struct nl_msg *gen_msg(flooder_param *params){
     return NULL;
   }
   
-  
-  
-  /*
-  ssids = nlmsg_alloc();
-  freqs = nlmsg_alloc();
-
-  if (!msg || !ssids || !freqs){
-    flooder_log(FLOODER_DEBUG, "Failed to allocate a netlink message");
-    if(msg)
-      nlmsg_free(msg);
-    if(ssids)
-      nlmsg_free(ssids);
-    if(freqs)
-      nlmsg_free(freqs);
-    return NULL;
-  }
-
-  genlmsg_put(msg, 0, 0, handle_id, 0, 0, NL80211_CMD_TRIGGER_SCAN, 0);
-  NLA_PUT_U32(msg, NL80211_ATTR_IFINDEX, params->iface);
-
-  NLA_PUT(ssids, 1, 0, "= =");
-  nla_put_nested(msg, NL80211_ATTR_SCAN_SSIDS, ssids);
-
-  NLA_PUT_U32(freqs, 1, getFreq(params->channel));
-  nla_put_nested(msg, NL80211_ATTR_SCAN_FREQUENCIES, freqs);
-  */
-
   size_t buf_len;
-  u8* buf = gen_buf(&buf_len);
+  u8* buf = gen_buf(&buf_len, params->addr);
   if (buf == NULL)
     goto nla_put_failure;
   
